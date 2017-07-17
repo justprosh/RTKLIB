@@ -40,7 +40,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <math.h>
 #include <time.h>
 #include <ctype.h>
@@ -49,6 +50,7 @@
 #include <windows.h>
 #else
 #include <pthread.h>
+#include <unistd.h>
 #endif
 #ifdef __cplusplus
 extern "C" {
