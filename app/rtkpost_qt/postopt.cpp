@@ -665,7 +665,7 @@ void OptDialog::LoadOpt(const QString &file)
 
 	resetsysopts();
     if (!loadopts(qPrintable(file),sysopts)) return;
-	getsysopts(&prcopt,&solopt,&filopt);
+    getsysopts(&prcopt,&solopt,1,&filopt);
 	
     PosMode		 ->setCurrentIndex(prcopt.mode);
     Freq		 ->setCurrentIndex(prcopt.nf>NFREQ-1?NFREQ-1:prcopt.nf-1);

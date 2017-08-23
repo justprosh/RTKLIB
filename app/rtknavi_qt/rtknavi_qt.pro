@@ -59,7 +59,9 @@ SOURCES += \
     outstrdlg.cpp \
     rcvoptdlg.cpp \
     markdlg.cpp \
-    ../appcmn_qt/graph.cpp
+    ../appcmn_qt/graph.cpp \
+    ../../src/erb.c \
+
 
 HEADERS  += \
     instrdlg.h \
@@ -108,3 +110,6 @@ RESOURCES += \
     rtknavi_qt.qrc
 
 RC_FILE = rtknavi_qt.rc
+
+DISTFILES += \
+    ../../../build-RTKLib-Desktop_Qt_5_9_1_GCC_64bit-Debug/src/libRTKLib.a

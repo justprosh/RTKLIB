@@ -259,8 +259,8 @@ extern "C" {
 #define MAXSTRRTK   8                   /* max number of stream in RTK server */
 #define MAXSOLRTK   2                   /* max number of solution streams in RTK server */
 #else
-#define MAXSTRRTK   10                  /* max number of stream in RTK server */
-#define MAXSOLRTK   4                   /* max number of solution streams in RTK server */
+#define MAXSTRRTK   8                  /* max number of stream in RTK server */
+#define MAXSOLRTK   2                  /* max number of solution streams in RTK server */
 #endif
 
 #define MAXSBSMSG   32                  /* max number of SBAS msg in RTK server */

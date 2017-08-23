@@ -702,7 +702,7 @@ void OptDialog::LoadOpt(const QString &file)
 	resetsysopts();
     if (!loadopts(qPrintable(file),sysopts)||
         !loadopts(qPrintable(file),rcvopts)) return;
-	getsysopts(&prcopt,&solopt,&filopt);
+    getsysopts(&prcopt,&solopt,1,&filopt);
 	
 	for (int i=0;i<8;i++) {
         mainForm->StreamC[i]=strtype[i]!=STR_NONE;

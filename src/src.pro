@@ -60,7 +60,9 @@ SOURCES += rtkcmn.c \
     rcv/skytraq.c \
     rcv/ss2.c \
     rcv/ublox.c \
-    rcv/cmr.c
+    rcv/cmr.c \
+    rcv/tersus.c \
+    erb.c
 
 HEADERS += rtklib.h
 

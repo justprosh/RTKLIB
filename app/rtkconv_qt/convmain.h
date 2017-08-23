@@ -48,7 +48,7 @@ public:
 protected:
     void run() {
         // convert to rinex
-        convrnx(format,&rnxopt,ifile,ofile);
+        convrnx(format,&rnxopt,ifile,ofile,NULL,NULL);
     }
 };
 
