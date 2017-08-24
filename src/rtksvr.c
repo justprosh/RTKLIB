@@ -916,7 +916,9 @@ extern void rtksvrfree(rtksvr_t *svr)
     free(svr->nav.eph );
     free(svr->nav.geph);
     free(svr->nav.seph);
+
     for (i=0;i<3;i++) for (j=0;j<MAXOBSBUF;j++) {
+         free(svr->raw+i);
         free(svr->obs[i][j].data);
     }
     rtkfree(&svr->rtk);

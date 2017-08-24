@@ -1144,8 +1144,7 @@ extern int outnmea_rmc(unsigned char *buff, const sol_t *sol)
     p+=sprintf(p,"$GPRMC,%02.0f%02.0f%05.2f,A,%02.0f%010.7f,%s,%03.0f%010.7f,%s,%4.2f,%4.2f,%02.0f%02.0f%02d,%.1f,%s,%s",
                ep[3],ep[4],ep[5],dms1[0],dms1[1]+dms1[2]/60.0,pos[0]>=0?"N":"S",
                dms2[0],dms2[1]+dms2[2]/60.0,pos[1]>=0?"E":"W",vel/KNOT2M,dir,
-               ep[2],ep[1],(int)ep[0]%100,amag,emag,
-               sol->stat==SOLQ_DGPS||sol->stat==SOLQ_FLOAT||sol->stat==SOLQ_FIX?"D":"A");
+               ep[2],ep[1],(int)ep[0]%100,amag,emag);
     for (q=(char *)buff+1,sum=0;*q;q++) sum^=*q; /* check-sum */
     p+=sprintf(p,"*%02X%c%c",sum,0x0D,0x0A);
     return p-(char *)buff;
@@ -1216,7 +1215,7 @@ extern int outnmea_gsa(unsigned char *buff, const sol_t *sol,
             else        p+=sprintf(p,",");
         }
         dops(nsat,azel,0.0,dop);
-        p+=sprintf(p,",%3.1f,%3.1f,%3.1f,1",dop[1],dop[2],dop[3]);
+        p+=sprintf(p,",%3.1f,%3.1f,%3.1f",dop[1],dop[2],dop[3]);
         for (q=s+1,sum=0;*q;q++) sum^=*q; /* check-sum */
         p+=sprintf(p,"*%02X%c%c",sum,0x0D,0x0A);
     }
@@ -1235,7 +1234,7 @@ extern int outnmea_gsa(unsigned char *buff, const sol_t *sol,
             else        p+=sprintf(p,",");
         }
         dops(nsat,azel,0.0,dop);
-        p+=sprintf(p,",%3.1f,%3.1f,%3.1f,2",dop[1],dop[2],dop[3]);
+        p+=sprintf(p,",%3.1f,%3.1f,%3.1f",dop[1],dop[2],dop[3]);
         for (q=s+1,sum=0;*q;q++) sum^=*q; /* check-sum */
         p+=sprintf(p,"*%02X%c%c",sum,0x0D,0x0A);
     }
@@ -1254,7 +1253,7 @@ extern int outnmea_gsa(unsigned char *buff, const sol_t *sol,
             else        p+=sprintf(p,",");
         }
         dops(nsat,azel,0.0,dop);
-        p+=sprintf(p,",%3.1f,%3.1f,%3.1f,3",dop[1],dop[2],dop[3]);
+        p+=sprintf(p,",%3.1f,%3.1f,%3.1f",dop[1],dop[2],dop[3]);
         for (q=s+1,sum=0;*q;q++) sum^=*q; /* check-sum */
         p+=sprintf(p,"*%02X%c%c",sum,0x0D,0x0A);
     }
