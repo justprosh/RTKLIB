@@ -29,6 +29,8 @@ public:
     char ifile[1024],*ofile[7];
     rnxopt_t rnxopt;
     int format;
+    stream_t stream;
+    int abortf;
 
     explicit ConversionThread(QObject *parent):QThread(parent){
         for (int i=0;i<7;i++)
@@ -39,6 +41,8 @@ public:
         memset(&rnxopt,0,sizeof(rnxopt_t));
         format=0;
         ifile[0]='\0';
+        strinit(&stream);
+        abortf=0;
     }
 
     ~ConversionThread() {
@@ -48,7 +52,7 @@ public:
 protected:
     void run() {
         // convert to rinex
-        convrnx(format,&rnxopt,ifile,ofile);
+        convrnx(format,&rnxopt,ifile,ofile,&abortf,&stream);
     }
 };
 

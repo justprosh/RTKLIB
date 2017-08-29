@@ -534,7 +534,7 @@ void MainForm::SvrStart(void)
     };
     int ip[]={0,1,1,1,2,3,3},strs[4]={0},opt[7]={0},n;
     char *paths[4],filepath[1024],buff[1024];
-    char cmd[1024];
+    char *cmd[1024], *cmds_periodic[3]={0};
     char *ant[3]={0},*rcv[3]={0},*p;
     FILE *fp;
     
@@ -555,10 +555,10 @@ void MainForm::SvrStart(void)
     strcpy(paths[3],!Output3->currentIndex()?"":qPrintable(Paths[3][ip[Output3->currentIndex()-1]]));
     
     if (Input->currentIndex()==0) {
-        if (CmdEna[0]) strncpy(cmd,qPrintable(Cmds[0]),1024);
+        if (CmdEna[0]) strncpy(*cmd,qPrintable(Cmds[0]),1024);
     }
     else if (Input->currentIndex()==1||Input->currentIndex()==3) {
-        if (CmdEnaTcp[0]) strncpy(cmd,qPrintable(CmdsTcp[0]),1024);
+        if (CmdEnaTcp[0]) strncpy(*cmd,qPrintable(CmdsTcp[0]),1024);
     }
     for (int i=0;i<5;i++) {
         opt[i]=SvrOpt[i];
@@ -596,7 +596,7 @@ void MainForm::SvrStart(void)
         matcpy(conv[i]->out.sta.del,AntOff,3,1);
     }
     // stream server start
-    if (!strsvrstart(&strsvr,opt,strs,paths,conv,cmd,AntPos)) return;
+    if (!strsvrstart(&strsvr,opt,strs,paths,conv,cmd,cmds_periodic,AntPos)) return;
     
     StartTime=utc2gpst(timeget());
     Panel1    ->setEnabled(false);
@@ -612,13 +612,13 @@ void MainForm::SvrStart(void)
 // stop stream server -------------------------------------------------------
 void MainForm::SvrStop(void)
 {
-    char cmd[1024];
+    char *cmd[1024];
     
     if (Input->currentIndex()==0) {
-        if (CmdEna[1]) strncpy(cmd,qPrintable(Cmds[1]),1024);
+        if (CmdEna[1]) strncpy(*cmd,qPrintable(Cmds[1]),1024);
     }
     else if (Input->currentIndex()==1||Input->currentIndex()==3) {
-        if (CmdEnaTcp[1]) strncpy(cmd,qPrintable(CmdsTcp[1]),1024);
+        if (CmdEnaTcp[1]) strncpy(*cmd,qPrintable(CmdsTcp[1]),1024);
     }
     strsvrstop(&strsvr,cmd);
     

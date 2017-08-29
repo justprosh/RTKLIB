@@ -1124,7 +1124,7 @@ void Plot::UpdateObs(int nobs)
             azel[k*2]=azel[1+k*2]=0.0;
         }
         if (RcvPos==0) {
-            pntpos(Obs.data+i,j-i,&Nav,&opt,&sol,azel,NULL,msg);
+            pntpos(Obs.data+i,j-i,&Nav,NULL,&opt,&sol,azel,NULL,msg);
             matcpy(rr,sol.rr,3,1);
             ecef2pos(rr,pos);
         }
