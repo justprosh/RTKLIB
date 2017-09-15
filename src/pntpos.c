@@ -216,12 +216,19 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
     int i,j,nv=0,sys,mask[4]={0};
     double weight;
     int rcv, sat;
+    FILE * out;
+    char id[4];
+    double r_ideal;
     trace(3,"resprng : n=%d\n",n);
-    
+    double rec_start[3] = {2773768.7836, 1652507.5042, 5482142.4783}, e_tmp[3];
     for (i=0;i<3;i++) rr[i]=x[i]; dtr=x[3];
     
     ecef2pos(rr,pos);
-    
+    if (iter == 9) {
+        out = fopen("/home/aleksey.proshutinskiy/logs/sablino/output.txt", "a+");
+        fprintf("%s", time_str(obs[i].time,7));
+        fclose(out);
+    }
     for (i=*ns=0;i<n&&i<MAXOBS;i++) {
         vsat[i]=0; azel[i*2]=azel[1+i*2]=resp[i]=0.0;
         
@@ -240,7 +247,7 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
         /* geometric distance/azimuth/elevation angle */
         if ((r=geodist(rs+i*6,rr,e))<=0.0||
             satazel(pos,e,azel+i*2)<opt->elmin) continue;
-        
+       
         /* psudorange with code bias correction */
         if ((P=prange(obs+i,nav,smoothing_data,azel+i*2,iter,opt,&vmeas))==0.0) continue;
         
@@ -259,6 +266,14 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
         if (!tropcorr(obs[i].time,nav,pos,azel+i*2,
                       iter>0?opt->tropopt:TROPOPT_SAAS,&dtrp,&vtrp)) {
             continue;
+        }
+        
+        if (iter == 9) {
+            out = fopen("/home/aleksey.proshutinskiy/logs/sablino/output.txt", "a+");
+            r_ideal = geodist(rs+i*6,rec_start,e_tmp);
+            satno2id(obs[i].sat, id);
+            fprintf(out,"%s\t%f\n", id, r_ideal+dtr-CLIGHT*dts[i*2]+dion+dtrp);
+            fclose(out);
         }
         /* pseudorange residual */
         v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);
