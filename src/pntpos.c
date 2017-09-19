@@ -20,7 +20,7 @@
 #include "rtklib.h"
 
 static const char rcsid[]="$Id:$";
-
+double residuals[MAXOBS] = {0};
 /* constants -----------------------------------------------------------------*/
 
 #define SQR(x)      ((x)*(x))
@@ -220,15 +220,11 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
     char id[4];
     double r_ideal;
     trace(3,"resprng : n=%d\n",n);
-    double rec_start[3] = {2773768.7836, 1652507.5042, 5482142.4783}, e_tmp[3];
+    double rec_start[3] = {2773889.7313, 1652731.9629, 5482037.8240}, e_tmp[3];
     for (i=0;i<3;i++) rr[i]=x[i]; dtr=x[3];
     
     ecef2pos(rr,pos);
-    if (iter == 9) {
-        out = fopen("/home/aleksey.proshutinskiy/logs/sablino/output.txt", "a+");
-        fprintf("%s", time_str(obs[i].time,7));
-        fclose(out);
-    }
+    
     for (i=*ns=0;i<n&&i<MAXOBS;i++) {
         vsat[i]=0; azel[i*2]=azel[1+i*2]=resp[i]=0.0;
         
@@ -267,14 +263,10 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
                       iter>0?opt->tropopt:TROPOPT_SAAS,&dtrp,&vtrp)) {
             continue;
         }
-        
-        if (iter == 9) {
-            out = fopen("/home/aleksey.proshutinskiy/logs/sablino/output.txt", "a+");
-            r_ideal = geodist(rs+i*6,rec_start,e_tmp);
-            satno2id(obs[i].sat, id);
-            fprintf(out,"%s\t%f\n", id, r_ideal+dtr-CLIGHT*dts[i*2]+dion+dtrp);
-            fclose(out);
-        }
+    
+        r_ideal = geodist(rs+i*6,rec_start,e_tmp);
+        residuals[i] = r_ideal+dtr-CLIGHT*dts[i*2]+dion+dtrp;
+          
         /* pseudorange residual */
         v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);
         
@@ -347,7 +339,9 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
 {
     double x[NX]={0},dx[NX],Q[NX*NX],*v,*H,*var,sig;
     int i,j,k,info,stat,nv,ns;
-    
+    double ep[6];
+    char id[4];
+    FILE * out;
     trace(3,"estpos  : n=%d\n",n);
     
     v=mat(n+4,1); H=mat(NX,n+4); var=mat(n+4,1);
@@ -391,7 +385,14 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
             sol->qr[5]=(float)Q[2];    /* cov zx */
             sol->ns=(unsigned char)ns;
             sol->age=sol->ratio=0.0;
-            
+            out = fopen("/home/justprosh/logs/ideal_track/out.txt", "a+");
+            time2epoch(obs[0].time, ep);
+            fprintf(out,"> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f\n", ep[0],ep[1],ep[2],ep[3],ep[4],ep[5]);
+            for (j = 0; j < n; j++) {
+                satno2id(obs[j].sat, id);
+                fprintf(out, "%s %12.3f\n", id, residuals[j]);
+            }
+            fclose(out);
             /* validate solution */
             if ((stat=valsol(azel,vsat,n,opt,v,nv,NX,msg))) {
                 sol->stat=opt->sateph==EPHOPT_SBAS?SOLQ_SBAS:SOLQ_SINGLE;
