@@ -98,6 +98,8 @@ int main(int argc, char **argv)
     prcopt_t prcopt=prcopt_default;
     solopt_t solopt=solopt_default;
     filopt_t filopt={""};
+    double rec_start[3];
+    char out_file[50];
     gtime_t ts={0},te={0};
     double tint=0.0,es[]={2000,1,1,0,0,0},ee[]={2000,12,31,23,59,59},pos[3];
     int i,j,n,ret;
@@ -176,6 +178,12 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[i],"-y")&&i+1<argc) solopt.sstat=atoi(argv[++i]);
         else if (!strcmp(argv[i],"-x")&&i+1<argc) solopt.trace=atoi(argv[++i]);
+        else if (!strcmp(argv[i],"-rec_start")&&i+1<argc) {
+            rec_start[0] = atoi(argv[++i]);
+            rec_start[1] = atoi(argv[++i]);
+            rec_start[2] = atoi(argv[++i]);
+            strcpy(out_file, argv[++i]);
+        }
         else if (*argv[i]=='-') printhelp();
         else if (n<MAXFILE) infile[n++]=argv[i];
     }
@@ -186,7 +194,7 @@ int main(int argc, char **argv)
         showmsg("error : no input file");
         return -2;
     }
-    ret=postpos(ts,te,tint,0.0,&prcopt,&solopt,&filopt,infile,n,outfile,"","");
+    ret=postpos(ts,te,tint,0.0,&prcopt,&solopt,&filopt,infile,n,outfile,"","", rec_start, out_file);
     
     if (!ret) fprintf(stderr,"%40s\r","");
     return ret;

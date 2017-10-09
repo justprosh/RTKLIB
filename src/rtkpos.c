@@ -42,7 +42,8 @@
 *-----------------------------------------------------------------------------*/
 #include <stdarg.h>
 #include "rtklib.h"
-
+double *rec_start;
+char *out_file;
 static const char rcsid[]="$Id:$";
 
 /* constants/macros ----------------------------------------------------------*/
@@ -2287,7 +2288,7 @@ extern void rtkfree(rtk_t *rtk)
 * notes  : before calling function, base station position rtk->sol.rb[] should
 *          be properly set for relative mode except for moving-baseline
 *-----------------------------------------------------------------------------*/
-extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
+extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav, double *rcvstart, char *outfile)
 {
     prcopt_t *opt=&rtk->opt;
     sol_t solb={{0}};
@@ -2297,13 +2298,15 @@ extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
     trace(3,"rtkpos  : time=%s n=%d\n",time_str(obs[0].time,3),n);
     trace(4,"obs=\n"); traceobs(4,obs,n);
     int sat, freq;
+    rec_start = rcvstart;
+    out_file = outfile;
     /*trace(5,"nav=\n"); tracenav(5,nav);*/
     
-    /* set base station position */
-    if (opt->refpos<=POSOPT_RINEX&&opt->mode!=PMODE_SINGLE&&
-        opt->mode!=PMODE_MOVEB) {
+    /* set base staion position */
+    if (opt->refpos<=3&&opt->mode!=PMODE_SINGLE&&opt->mode!=PMODE_MOVEB) {
         for (i=0;i<6;i++) rtk->rb[i]=i<3?opt->rb[i]:0.0;
     }
+
     /* count rover/base station observations */
     for (nu=0;nu   <n&&obs[nu   ].rcv==1;nu++) ;
     for (nr=0;nu+nr<n&&obs[nu+nr].rcv==2;nr++) ;
@@ -2321,7 +2324,7 @@ extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
     }
     
     /* rover position by single point positioning */
-    if (!pntpos(obs,nu,nav,&rtk->smoothing_data,&rtk->opt,&rtk->sol,NULL,rtk->ssat,msg)) {
+    if (!pntpos(obs,nu,nav,&rtk->smoothing_data,&rtk->opt,&rtk->sol,NULL,rtk->ssat,msg, rec_start,out_file)) {
         errmsg(rtk,"point pos error (%s)\n",msg);
         
         if (!rtk->opt.dynamics) {
@@ -2366,7 +2369,7 @@ extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav)
     if (opt->mode==PMODE_MOVEB) { /*  moving baseline */
         
         /* estimate position/velocity of base station */
-        if (!pntpos(obs+nu,nr,nav,&rtk->smoothing_data,&rtk->opt,&solb,NULL,NULL,msg)) {
+        if (!pntpos(obs+nu,nr,nav,&rtk->smoothing_data,&rtk->opt,&solb,NULL,NULL,msg,rec_start,out_file)) {
             errmsg(rtk,"base station position error (%s)\n",msg);
             return 0;
         }

@@ -22,6 +22,8 @@
 static const char rcsid[]="$Id:$";
 double residuals[MAXOBS] = {0}, res_phase[MAXOBS] = {0};
 double start_time = 0;
+double *rec_start;
+char *out_file;
 /* constants -----------------------------------------------------------------*/
 
 #define SQR(x)      ((x)*(x))
@@ -225,7 +227,7 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
     char id[4];
     double r_ideal;
     trace(3,"resprng : n=%d\n",n);
-    double rec_start[3] = {2773889.7313, 1652731.9629, 5482037.8240}, e_tmp[3], rec_dyn[3];
+    double e_tmp[3], rec_dyn[3];
     for (i=0;i<3;i++) rr[i]=x[i]; dtr=x[3];
     
     ecef2pos(rr,pos);
@@ -273,7 +275,7 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
         rec_dyn[2] = rec_start[2];
         r_ideal = geodist(rs+i*6,rec_dyn,e_tmp);
 
-        residuals[i] = r_ideal + dtr - CLIGHT*dts[i*2]+dion+dtrp;
+        residuals[i] = r_ideal - CLIGHT*dts[i*2]+dion+dtrp;
         res_phase[i] = (residuals[i] - P)/nav->lam[obs[i].sat - 1][0] + obs[i].L[0];
         /* pseudorange residual */
         v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);
@@ -393,7 +395,7 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
             sol->qr[5]=(float)Q[2];    /* cov zx */
             sol->ns=(unsigned char)ns;
             sol->age=sol->ratio=0.0;
-            out = fopen("/home/aleksey.proshutinskiy/logs/ideal_track/out.txt", "a+");
+            out = fopen(out_file, "a+");
             time2epoch(obs[0].time, ep);
             fprintf(out,"> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f\n", ep[0],ep[1],ep[2],ep[3],ep[4],ep[5]);
             for (j = 0; j < n; j++) {
@@ -584,14 +586,17 @@ static void estvel(const obsd_t *obs, int n, const double *rs, const double *dts
 *-----------------------------------------------------------------------------*/
 extern int pntpos(const obsd_t *obs, int n, const nav_t *nav, 
                   const smoothing_data_t *smoothing_data, const prcopt_t *opt, 
-                  sol_t *sol, double *azel, ssat_t *ssat, char *msg)
+                  sol_t *sol, double *azel, ssat_t *ssat, char *msg, double *rcv_start, char *outfile)
 {
     prcopt_t opt_=*opt;
     double *rs,*dts,*var,*azel_,*resp;
     int i,stat,vsat[MAXOBS]={0},svh[MAXOBS];
     
     sol->stat=SOLQ_NONE;
-    
+    if (rec_start != NULL) {
+        rec_start = rcv_start;
+        out_file = outfile;
+    }
     if (n<=0) {strcpy(msg,"no observation data"); return 0;}
     
     trace(3,"pntpos  : tobs=%s n=%d\n",time_str(obs[0].time,3),n);

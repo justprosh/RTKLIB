@@ -1891,12 +1891,12 @@ EXPORT int lambda_search(int n, int m, const double *a, const double *Q,
 /* standard positioning ------------------------------------------------------*/
 EXPORT int pntpos(const obsd_t *obs, int n, const nav_t *nav, 
                   const smoothing_data_t *smoothing_data, const prcopt_t *opt, 
-                  sol_t *sol, double *azel, ssat_t *ssat, char *msg);
+                  sol_t *sol, double *azel, ssat_t *ssat, char *msg, double *rcv_start, char *outfile);
 
 /* precise positioning -------------------------------------------------------*/
 EXPORT void rtkinit(rtk_t *rtk, const prcopt_t *opt);
 EXPORT void rtkfree(rtk_t *rtk);
-EXPORT int  rtkpos (rtk_t *rtk, const obsd_t *obs, int nobs, const nav_t *nav);
+EXPORT int  rtkpos (rtk_t *rtk, const obsd_t *obs, int nobs, const nav_t *nav, double * rec_start, char *out);
 EXPORT int  rtkopenstat(const char *file, int level);
 EXPORT void rtkclosestat(void);
 EXPORT int  rtkoutstat(rtk_t *rtk, char *buff);
@@ -1920,7 +1920,7 @@ EXPORT int pppcorr_stec(const pppcorr_t *corr, gtime_t time, const double *pos,
 EXPORT int postpos(gtime_t ts, gtime_t te, double ti, double tu,
                    const prcopt_t *popt, const solopt_t *sopt,
                    const filopt_t *fopt, char **infile, int n, char *outfile,
-                   const char *rov, const char *base);
+                   const char *rov, const char *base, double *rec_start, char *out_file);
 
 /* stream server functions ---------------------------------------------------*/
 EXPORT void strsvrinit (strsvr_t *svr, int nout);

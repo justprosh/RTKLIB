@@ -42,7 +42,8 @@
 #include "rtklib.h"
 
 static const char rcsid[]="$Id: postpos.c,v 1.1 2008/07/17 21:48:06 ttaka Exp $";
-
+double *rcv_start;
+char *out_file;
 #define MIN(x,y)    ((x)<(y)?(x):(y))
 #define SQRT(x)     ((x)<=0.0?0.0:sqrt(x))
 
@@ -449,7 +450,7 @@ static void procpos(FILE *fp, FILE *fptm, const prcopt_t *popt, const solopt_t *
             for (i=0;i<n;i++) obs[i].L[1]=obs[i].P[1]=0.0;
         }
 #endif
-        if (!rtkpos(rtk,obs,n,&navs)) {
+        if (!rtkpos(rtk,obs,n,&navs,rcv_start,out_file)) {
             if (rtk->sol.eventime.time != 0) {
                 if (mode == 0) {
                     outinvalidtm(fptm, sopt, rtk->sol.eventime);
@@ -813,7 +814,7 @@ static int avepos(double *ra, int rcv, const obs_t *obs, const nav_t *nav,
         if (j<=0||!screent(data[0].time,ts,ts,1.0)) continue; /* only 1 hz */
         
         /* todo: code smoothing */
-        if (!pntpos(data,j,nav,NULL,opt,&sol,NULL,NULL,msg)) continue;
+        if (!pntpos(data,j,nav,NULL,opt,&sol,NULL,NULL,msg, NULL, NULL)) continue;
         
         for (i=0;i<3;i++) ra[i]+=sol.rr[i];
         n++;
@@ -1351,13 +1352,14 @@ static int execses_b(gtime_t ts, gtime_t te, double ti, const prcopt_t *popt,
 extern int postpos(gtime_t ts, gtime_t te, double ti, double tu,
                    const prcopt_t *popt, const solopt_t *sopt,
                    const filopt_t *fopt, char **infile, int n, char *outfile,
-                   const char *rov, const char *base)
+                   const char *rov, const char *base, double *rec_start, char *out)
 {
     gtime_t tts,tte,ttte;
     double tunit,tss;
     int i,j,k,nf,stat=0,week,flag=1,index[MAXINFILE]={0};
     char *ifile[MAXINFILE],ofile[1024],*ext;
-    
+    rcv_start = rec_start;
+    out_file = out;
     trace(3,"postpos : ti=%.0f tu=%.0f n=%d outfile=%s\n",ti,tu,n,outfile);
     
     /* open processing session */
