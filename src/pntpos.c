@@ -23,7 +23,7 @@ static const char rcsid[]="$Id:$";
 double residuals[MAXOBS] = {0}, res_phase[MAXOBS] = {0};
 double start_time = 0;
 double *rec_start;
-char *out_file;
+char *out_file = "";
 /* constants -----------------------------------------------------------------*/
 
 #define SQR(x)      ((x)*(x))
@@ -231,7 +231,6 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
     for (i=0;i<3;i++) rr[i]=x[i]; dtr=x[3];
     
     ecef2pos(rr,pos);
-    
     for (i=*ns=0;i<n&&i<MAXOBS;i++) {
         vsat[i]=0; azel[i*2]=azel[1+i*2]=resp[i]=0.0;
         
@@ -270,13 +269,16 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
                       iter>0?opt->tropopt:TROPOPT_SAAS,&dtrp,&vtrp)) {
             continue;
         }
-        rec_dyn[0] = receiver_shift(obs[i].time) + rec_start[0];
+        /*rec_dyn[0] = receiver_shift(obs[i].time) + rec_start[0];
         rec_dyn[1] = rec_start[1];
-        rec_dyn[2] = rec_start[2];
-        r_ideal = geodist(rs+i*6,rec_dyn,e_tmp);
-
-        residuals[i] = r_ideal - CLIGHT*dts[i*2]+dion+dtrp;
-        res_phase[i] = (residuals[i] - P)/nav->lam[obs[i].sat - 1][0] + obs[i].L[0];
+        rec_dyn[2] = rec_start[2];*/
+        
+        if (*out_file)
+        {
+            r_ideal = geodist(rs + i * 6, rec_start, e_tmp);
+            residuals[i] = r_ideal - CLIGHT*dts[i*2]+dion+dtrp;
+            res_phase[i] = (residuals[i] - P)/nav->lam[obs[i].sat - 1][0] + obs[i].L[0];
+        }
         /* pseudorange residual */
         v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);
         
@@ -359,10 +361,12 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
     for (i=0;i<3;i++) x[i]=sol->rr[i];
     
     for (i=0;i<MAXITR;i++) {
-        
+        for (j = 0; j < MAXOBS; j++) {
+            residuals[j] = res_phase[j] = 0.0;
+        }
         /* pseudorange residuals */
-        nv=rescode(i,obs,n,smoothing_data,rs,dts,vare,svh,nav,x,opt,v,H,var,azel,
-                   vsat,resp,&ns);
+        nv = rescode(i, obs, n, smoothing_data, rs, dts, vare, svh, nav, x, opt, v, H, var, azel,
+                        vsat, resp, &ns);
         
         if (nv<NX) {
             sprintf(msg,"lack of valid sats ns=%d",nv);
@@ -395,16 +399,18 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
             sol->qr[5]=(float)Q[2];    /* cov zx */
             sol->ns=(unsigned char)ns;
             sol->age=sol->ratio=0.0;
-            out = fopen(out_file, "a+");
-            time2epoch(obs[0].time, ep);
-            fprintf(out,"> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f\n", ep[0],ep[1],ep[2],ep[3],ep[4],ep[5]);
-            for (j = 0; j < n; j++) {
-                satno2id(obs[j].sat, id);
-                if (residuals[j] <= 0) 
-                    continue;
-                fprintf(out, "%s %12.3f %13.3f\n", id, residuals[j], res_phase[j]);
+            if (*out_file) {
+                out = fopen(out_file, "a+");
+                time2epoch(obs[0].time, ep);    
+                fprintf(out,"> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f\n", ep[0],ep[1],ep[2],ep[3],ep[4],ep[5]);
+                for (j = 0; j < n; j++) {
+                    satno2id(obs[j].sat, id);
+                    if (residuals[j] <= 0) 
+                        continue;
+                    fprintf(out, "%s %12.3f %13.3f\n", id, residuals[j], res_phase[j]);
+                }
+                fclose(out);
             }
-            fclose(out);
             /* validate solution */
             if ((stat=valsol(azel,vsat,n,opt,v,nv,NX,msg))) {
                 sol->stat=opt->sateph==EPHOPT_SBAS?SOLQ_SBAS:SOLQ_SINGLE;
@@ -593,7 +599,7 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
     int i,stat,vsat[MAXOBS]={0},svh[MAXOBS];
     
     sol->stat=SOLQ_NONE;
-    if (rec_start != NULL) {
+    if (*outfile) {
         rec_start = rcv_start;
         out_file = outfile;
     }
