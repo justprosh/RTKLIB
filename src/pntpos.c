@@ -20,10 +20,10 @@
 #include "rtklib.h"
 
 static const char rcsid[]="$Id:$";
-double residuals[MAXOBS] = {0}, res_phase[MAXOBS] = {0};
+double prange_ideal[MAXSAT] = {0.0}, phase_ideal[MAXSAT] = {0.0};
 double start_time = 0;
 double *rec_start;
-char *out_file = "";
+char *out_file = "", out_file_dtr[100];
 /* constants -----------------------------------------------------------------*/
 
 #define SQR(x)      ((x)*(x))
@@ -212,7 +212,7 @@ static double receiver_shift(gtime_t time) {
     double delta = time.time + time.sec - start_time;
     return delta * 1;
 }
-/* pseudorange residuals -----------------------------------------------------*/
+/* pseudorange prange_ideal -----------------------------------------------------*/
 static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *smoothing_data,
                    const double *rs, const double *dts, const double *vare, 
                    const int *svh, const nav_t *nav, const double *x, 
@@ -223,11 +223,9 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
     int i,j,nv=0,sys,mask[4]={0};
     double weight;
     int rcv, sat;
-    FILE * out;
-    char id[4];
-    double r_ideal;
+   
     trace(3,"resprng : n=%d\n",n);
-    double e_tmp[3], rec_dyn[3];
+   
     for (i=0;i<3;i++) rr[i]=x[i]; dtr=x[3];
     
     ecef2pos(rr,pos);
@@ -269,16 +267,7 @@ static int rescode(int iter, const obsd_t *obs, int n, const smoothing_data_t *s
                       iter>0?opt->tropopt:TROPOPT_SAAS,&dtrp,&vtrp)) {
             continue;
         }
-        /*rec_dyn[0] = receiver_shift(obs[i].time) + rec_start[0];
-        rec_dyn[1] = rec_start[1];
-        rec_dyn[2] = rec_start[2];*/
         
-        if (*out_file)
-        {
-            r_ideal = geodist(rs + i * 6, rec_start, e_tmp);
-            residuals[i] = r_ideal - CLIGHT*dts[i*2]+dion+dtrp;
-            res_phase[i] = (residuals[i] - P)/nav->lam[obs[i].sat - 1][0] + obs[i].L[0];
-        }
         /* pseudorange residual */
         v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);
         
@@ -323,7 +312,7 @@ static int valsol(const double *azel, const int *vsat, int n,
     
     trace(3,"valsol  : n=%d nv=%d\n",n,nv);
     
-    /* chi-square validation of residuals */
+    /* chi-square validation of prange_ideal */
     vv=dot(v,v,nv);
     if (nv>nx&&vv>chisqr[nv-nx-1]) {
         sprintf(msg,"chi-square error nv=%d vv=%.1f cs=%.1f",nv,vv,chisqr[nv-nx-1]);
@@ -351,9 +340,7 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
 {
     double x[NX]={0},dx[NX],Q[NX*NX],*v,*H,*var,sig;
     int i,j,k,info,stat,nv,ns;
-    double ep[6];
-    char id[4];
-    FILE * out;
+    
     trace(3,"estpos  : n=%d\n",n);
     
     v=mat(n+4,1); H=mat(NX,n+4); var=mat(n+4,1);
@@ -361,10 +348,8 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
     for (i=0;i<3;i++) x[i]=sol->rr[i];
     
     for (i=0;i<MAXITR;i++) {
-        for (j = 0; j < MAXOBS; j++) {
-            residuals[j] = res_phase[j] = 0.0;
-        }
-        /* pseudorange residuals */
+        
+        /* pseudorange prange_ideal */
         nv = rescode(i, obs, n, smoothing_data, rs, dts, vare, svh, nav, x, opt, v, H, var, azel,
                         vsat, resp, &ns);
         
@@ -399,18 +384,7 @@ static int estpos(const obsd_t *obs, int n, const smoothing_data_t *smoothing_da
             sol->qr[5]=(float)Q[2];    /* cov zx */
             sol->ns=(unsigned char)ns;
             sol->age=sol->ratio=0.0;
-            if (*out_file) {
-                out = fopen(out_file, "a+");
-                time2epoch(obs[0].time, ep);    
-                fprintf(out,"> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f\n", ep[0],ep[1],ep[2],ep[3],ep[4],ep[5]);
-                for (j = 0; j < n; j++) {
-                    satno2id(obs[j].sat, id);
-                    if (residuals[j] <= 0) 
-                        continue;
-                    fprintf(out, "%s %12.3f %13.3f\n", id, residuals[j], res_phase[j]);
-                }
-                fclose(out);
-            }
+            
             /* validate solution */
             if ((stat=valsol(azel,vsat,n,opt,v,nv,NX,msg))) {
                 sol->stat=opt->sateph==EPHOPT_SBAS?SOLQ_SBAS:SOLQ_SINGLE;
@@ -501,7 +475,7 @@ static int raim_fde(const obsd_t *obs, int n, const smoothing_data_t *smoothing_
     free(svh_e); free(vsat_e); free(resp_e);
     return stat;
 }
-/* doppler residuals ---------------------------------------------------------*/
+/* doppler prange_ideal ---------------------------------------------------------*/
 static int resdop(const obsd_t *obs, int n, const double *rs, const double *dts,
                   const nav_t *nav, const double *rr, const double *x,
                   const double *azel, const int *vsat, double *v, double *H)
@@ -558,7 +532,7 @@ static void estvel(const obsd_t *obs, int n, const double *rs, const double *dts
     
     for (i=0;i<MAXITR;i++) {
         
-        /* doppler residuals */
+        /* doppler prange_ideal */
         if ((nv=resdop(obs,n,rs,dts,nav,sol->rr,x,azel,vsat,v,H))<4) {
             break;
         }
@@ -573,6 +547,101 @@ static void estvel(const obsd_t *obs, int n, const double *rs, const double *dts
         }
     }
     free(v); free(H);
+}
+void calculate_ideal_ranges(const obsd_t *obs, int n, const double *rs, const double *dts, 
+                            const nav_t *nav, const prcopt_t *opt) {
+
+    double r,dion,dtrp,vmeas,vion,vtrp,pos[3],e[3],P,lam_L1;
+    int i,j,sys;
+    int rcv, sat;
+    double r_ideal;
+    double e_tmp[3];
+    double *azel;
+    double code_bias;
+
+    azel = zeros(2, n);
+
+    for (sat = 0; sat < MAXSAT; sat++) {
+        prange_ideal[sat] = 0.0;
+        phase_ideal[sat] = 0.0;
+    }
+
+    ecef2pos(rec_start, pos);
+    for (i=0;i<n&&i<MAXOBS;i++) {
+    
+        sat = obs[i].sat - 1;
+        
+        if (!(sys=satsys(obs[i].sat,NULL))) continue;
+        
+        /* reject duplicated observation data */
+        if (i<n-1&&i<MAXOBS-1&&obs[i].sat==obs[i+1].sat) {
+            trace(2,"duplicated observation data %s sat=%2d\n",
+                  time_str(obs[i].time,3),obs[i].sat);
+            i++;
+            continue;
+        }
+        /* geometric distance/azimuth/elevation angle */
+        if ((r_ideal=geodist(rs + i * 6, rec_start, e)) <= 0.0 ||
+            satazel(pos, e, azel + i * 2) < 0.0)
+            continue;
+
+        /* psudorange with code bias correction */
+        if ((P=prange(obs+i,nav,NULL,azel+i*2,0,opt,&vmeas))==0.0) continue;
+        code_bias = P - obs[i].P[0];
+
+        /* ionospheric corrections */
+        if (!ionocorr(obs[i].time,nav,obs[i].sat,pos,azel+i*2,IONOOPT_BRDC,&dion,&vion)) continue;
+        
+        /* GPS-L1 -> L1/B1 */
+        if ((lam_L1=nav->lam[sat][0])>0.0) {
+            dion*=SQR(lam_L1/lam_carr[0]);
+        }
+        /* tropospheric corrections */
+        if (!tropcorr(obs[i].time,nav,pos,azel+i*2,TROPOPT_SAAS,&dtrp,&vtrp)) {
+            continue;
+        }
+        
+        prange_ideal[sat] = r_ideal - CLIGHT * dts[i*2] + dion + dtrp - code_bias;
+        phase_ideal[sat] = (prange_ideal[sat] + code_bias) / nav->lam[sat][0];
+    }
+    free(azel);
+}
+void add_dtr(const sol_t *sol, const nav_t *nav) {
+
+    double const *dtr = sol->dtr;
+    double phase_bias;
+    gtime_t cur_time = timeadd(sol->time, dtr[0] / CLIGHT);
+    int sat, sys;
+    double dt, lam;
+    double ep[6];
+    char id[4];
+
+    FILE *out = fopen(out_file_dtr, "a+");
+
+    time2epoch(cur_time, ep);
+    fprintf(out, "> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f\n", ep[0], ep[1], ep[2], ep[3], ep[4], ep[5]);
+    for (sat = 0; sat < MAXSAT; sat++)
+    {
+        if (prange_ideal[sat] <= 0.0)
+            continue;
+        dt = dtr[0];
+        if (!(sys = satsys(sat + 1, NULL)))
+            continue;
+        satno2id(sat + 1, id);
+        /* time system and receiver bias offset correction */
+        if (sys == SYS_GLO)      dt += dtr[1];
+        else if (sys == SYS_GAL) dt += dtr[2];
+        else if (sys == SYS_CMP) dt += dtr[3];
+        dt *= CLIGHT;
+        fprintf(out, "%s %f\n", id, dt);
+        prange_ideal[sat] += dt;
+        lam = nav->lam[sat][0];
+        
+        /* correct phase bias (cyc) */
+        phase_bias = nav->ssr[sat].pbias[CODE_L1C - 1] / lam;
+        phase_ideal[sat] += dt / lam + phase_bias;
+    }
+    fclose(out);
 }
 /* single-point positioning ----------------------------------------------------
 * compute receiver position, velocity, clock bias by single-point positioning
@@ -597,17 +666,26 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
     prcopt_t opt_=*opt;
     double *rs,*dts,*var,*azel_,*resp;
     int i,stat,vsat[MAXOBS]={0},svh[MAXOBS];
-    
-    sol->stat=SOLQ_NONE;
-    if (*outfile) {
+
+    double ep[6];
+    char id[4];
+
+    FILE *out;
+    int sat;
+
+    sol->stat = SOLQ_NONE;
+    if ( (outfile != NULL) && (*outfile) ) {
         rec_start = rcv_start;
         out_file = outfile;
+        strcpy(out_file_dtr, outfile);
+        strcat(out_file_dtr, ".dtr");
     }
     if (n<=0) {strcpy(msg,"no observation data"); return 0;}
     
     trace(3,"pntpos  : tobs=%s n=%d\n",time_str(obs[0].time,3),n);
     
-    sol->time=obs[0].time; msg[0]='\0';
+    sol->time=obs[0].time;
+    msg[0] = '\0';
     sol->eventime = obs[0].eventime;
     if (start_time <= 0.0) {
         start_time = sol->time.time + sol->time.sec;
@@ -624,13 +702,42 @@ extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
     /* satellite positons, velocities and clocks */
     satposs(sol->time,obs,n,nav,opt_.sateph,rs,dts,var,svh);
     
+    /* */
+    if (*out_file) calculate_ideal_ranges(obs, n, rs, dts, nav, &opt_);
+
     /* estimate receiver position with pseudorange */
-    stat=estpos(obs,n,smoothing_data,rs,dts,var,svh,nav,&opt_,sol,azel_,vsat,resp,msg);
-    
+    stat = estpos(obs, n, smoothing_data, rs, dts, var, svh, nav, &opt_, sol, azel_, vsat, resp, msg);
+
+#if 0
     /* raim fde */
     if (!stat&&n>=6&&opt->posopt[4]) {
         stat=raim_fde(obs,n,smoothing_data,rs,dts,var,svh,nav,&opt_,sol,azel_,vsat,resp,msg);
     }
+#endif
+/* */
+
+    if (stat != SOLQ_NONE && *out_file/*TODO: ADD OPTION*/) {
+        add_dtr(sol, nav);
+    }
+
+    /* */
+    if (*out_file)
+    {
+        out = fopen(out_file, "a+");
+        time2epoch(obs[0].time, ep);
+        fprintf(out, "> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f\n", ep[0], ep[1], ep[2], ep[3], ep[4], ep[5]);
+        if (stat != SOLQ_NONE) {
+            for (sat = 0; sat < MAXSAT; sat++)
+            {
+                satno2id(sat + 1, id);
+                if (prange_ideal[sat] <= 0)
+                    continue;
+                fprintf(out, "%s %12.3f %13.3f\n", id, prange_ideal[sat], phase_ideal[sat]);
+            }
+        }
+        fclose(out);
+    }
+
     /* estimate receiver velocity with doppler */
     if (stat) estvel(obs,n,rs,dts,nav,&opt_,sol,azel_,vsat);
     

@@ -2369,7 +2369,7 @@ extern int rtkpos(rtk_t *rtk, const obsd_t *obs, int n, const nav_t *nav, double
     if (opt->mode==PMODE_MOVEB) { /*  moving baseline */
         
         /* estimate position/velocity of base station */
-        if (!pntpos(obs+nu,nr,nav,&rtk->smoothing_data,&rtk->opt,&solb,NULL,NULL,msg,rec_start,out_file)) {
+        if (!pntpos(obs+nu,nr,nav,&rtk->smoothing_data,&rtk->opt,&solb,NULL,NULL,msg,NULL,NULL)) {
             errmsg(rtk,"base station position error (%s)\n",msg);
             return 0;
         }

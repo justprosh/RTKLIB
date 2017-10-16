@@ -99,7 +99,7 @@ int main(int argc, char **argv)
     solopt_t solopt=solopt_default;
     filopt_t filopt={""};
     double rec_start[3] ={0};
-    char out_file[50] = "";
+    char out_file[100] = "";
     gtime_t ts={0},te={0};
     double tint=0.0,es[]={2000,1,1,0,0,0},ee[]={2000,12,31,23,59,59},pos[3];
     int i,j,n,ret;
