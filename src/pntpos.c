@@ -590,19 +590,19 @@ void calculate_ideal_ranges(const obsd_t *obs, int n, const double *rs, const do
         code_bias = P - obs[i].P[0];
 
         /* ionospheric corrections */
-        if (!ionocorr(obs[i].time,nav,obs[i].sat,pos,azel+i*2,IONOOPT_BRDC,&dion,&vion)) continue;
+        if (!ionocorr(obs[i].time,nav,obs[i].sat,pos,azel+i*2,IONOOPT_OFF,&dion,&vion)) continue;
         
         /* GPS-L1 -> L1/B1 */
         if ((lam_L1=nav->lam[sat][0])>0.0) {
             dion*=SQR(lam_L1/lam_carr[0]);
         }
         /* tropospheric corrections */
-        if (!tropcorr(obs[i].time,nav,pos,azel+i*2,TROPOPT_SAAS,&dtrp,&vtrp)) {
+        if (!tropcorr(obs[i].time,nav,pos,azel+i*2,TROPOPT_OFF,&dtrp,&vtrp)) {
             continue;
         }
         
         prange_ideal[sat] = r_ideal - CLIGHT * dts[i*2] + dion + dtrp - code_bias;
-        phase_ideal[sat] = (prange_ideal[sat] + code_bias) / nav->lam[sat][0];
+        phase_ideal[sat] = (r_ideal - CLIGHT * dts[i*2] - dion + dtrp) / nav->lam[sat][0];
     }
     free(azel);
 }
