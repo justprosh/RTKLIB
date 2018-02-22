@@ -25,7 +25,7 @@ OBJ_NAMES    := $(SRC_NAMES:%.c=%.o)
 # common compile options
 INCLUDE := -I$(SRC_DIR_1)
 OPTIONS := -DTRACE -DENAGLO -DENAQZS -DENAGAL -DENACMP -DENAIRN -DNFREQ=3
-CFLAGS_CMN := -ansi -pedantic -Wall -Wno-unused-but-set-variable -fno-strict-overflow -Werror -Wno-error=unused-function $(INCLUDE) $(OPTIONS) -g
+CFLAGS_CMN := -std=c++11 -pedantic -Wall -Wno-unused-but-set-variable -fno-strict-overflow -Wno-error=unused-function $(INCLUDE) $(OPTIONS) -g
 LDLIBS  := -lm -lrt -lpthread
 EXEC    := convbin
 
@@ -69,24 +69,24 @@ debug: $(DBG_EXEC)
 
 #release
 $(REL_EXEC): $(addprefix $(REL_DIR)/,$(OBJ_NAMES))
-	$(CC) $^ -o $@ $(LDLIBS)
+	$(CXX) $^ -o $@ $(LDLIBS)
 
 $(REL_DIR)/%.o: %.c $(SRC_DIR_1)/rtklib.h
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CXX) -c $(CFLAGS) $< -o $@
 
 #prerelease
 $(PREREL_EXEC): $(addprefix $(PREREL_DIR)/,$(OBJ_NAMES))
-	$(CC) $^ -o $@ $(LDLIBS)
+	$(CXX) $^ -o $@ $(LDLIBS)
 
 $(PREREL_DIR)/%.o: %.c $(SRC_DIR_1)/rtklib.h
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CXX) -c $(CFLAGS) $< -o $@
 
 # debug
 $(DBG_EXEC): $(addprefix $(DBG_DIR)/,$(OBJ_NAMES))
-	$(CC) $^ -o $@ $(LDLIBS) 
+	$(CXX) $^ -o $@ $(LDLIBS) 
 
 $(DBG_DIR)/%.o: %.c $(SRC_DIR_1)/rtklib.h
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CXX) -c $(CFLAGS) $< -o $@
 
 ####################################################################
 

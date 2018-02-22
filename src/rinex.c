@@ -1885,15 +1885,16 @@ extern int outrnxobsh(FILE *fp, const rnxopt_t *opt, const nav_t *nav)
     const char *glo_codes[]={"C1C","C1P","C2C","C2P"};
     double ep[6],pos[3]={0},del[3]={0};
     int i,j,k,n,prn[MAXPRNGLO];
-    char date[32],prog[20],*sys,*tsys="GPS";
-    
+    char date[32],prog[20],*tsys="GPS";
+    const char *sys;
+
     trace(3,"outrnxobsh:\n");
     
     timestr_rnx(date);
     strcpy(prog,opt->prog);
     
     if (opt->rnxver<=2.99) { /* ver.2 */
-        sys=opt->navsys==SYS_GPS?"G (GPS)":"M (MIXED)";
+        sys = opt->navsys==SYS_GPS?"G (GPS)":"M (MIXED)";
     }
     else { /* ver.3 */
         if      (opt->navsys==SYS_GPS) sys="G: GPS";

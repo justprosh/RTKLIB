@@ -2288,7 +2288,7 @@ extern int readpcv(const char *file, pcvs_t *pcvs)
     
     trace(3,"readpcv: file=%s\n",file);
     
-    if (!(ext=strrchr(file,'.'))) ext="";
+    if (!(ext = const_cast<char*>(strrchr(file,'.')))) ext="";
     
     if (!strcmp(ext,".atx")||!strcmp(ext,".ATX")) {
         stat=readantex(file,pcvs);
@@ -3200,7 +3200,9 @@ extern int expath(const char *path, char *paths[], int nmax)
     
     trace(3,"expath  : path=%s nmax=%d\n",path,nmax);
     
-    if ((p=strrchr(path,'/'))||(p=strrchr(path,'\\'))) {
+    if ((p = const_cast<char*>(strrchr(path,'/'))) ||
+        (p = const_cast<char*>(strrchr(path,'\\'))))
+    {
         file=p+1; strncpy(dir,path,p-path+1); dir[p-path+1]='\0';
     }
     if (!(dp=opendir(*dir?dir:"."))) return 0;
