@@ -11,8 +11,10 @@ SRC_DIR_2   = ../../../src/rcv
 SRC_DIRS   := $(SRC_DIR_APP) $(SRC_DIR_1) $(SRC_DIR_2)
 
 vpath %.c $(SRC_DIRS)
+vpath %.cpp $(SRC_DIR_APP)
 
 SRC_NAMES_APP = convbin.c
+SRC_NAMES_CPP = subscriber.cpp rnx_event.cpp
 SRC_NAMES_1   = stream.c rtkcmn.c rinex.c sbas.c preceph.c rcvraw.c convrnx.c \
     rtcm.c rtcm2.c rtcm3.c rtcm3e.c pntpos.c ephemeris.c ionex.c qzslex.c
 SRC_NAMES_2   = novatel.c ss2.c ublox.c crescent.c skytraq.c gw10.c javad.c nvs.c \
@@ -20,13 +22,13 @@ SRC_NAMES_2   = novatel.c ss2.c ublox.c crescent.c skytraq.c gw10.c javad.c nvs.
 SRC_NAMES    := $(SRC_NAMES_APP) $(SRC_NAMES_1) $(SRC_NAMES_2) 
 
 # object files
-OBJ_NAMES    := $(SRC_NAMES:%.c=%.o)
+OBJ_NAMES    := $(SRC_NAMES:%.c=%.o) $(SRC_NAMES_CPP:%.cpp=%.o)
 
 # common compile options
-INCLUDE := -I$(SRC_DIR_1)
+INCLUDE := -I$(SRC_DIR_1) -I$(SRC_DIR_APP)
 OPTIONS := -DTRACE -DENAGLO -DENAQZS -DENAGAL -DENACMP -DENAIRN -DNFREQ=3
 CFLAGS_CMN := -std=c++11 -pedantic -Wall -Wno-unused-but-set-variable -fno-strict-overflow -Wno-error=unused-function $(INCLUDE) $(OPTIONS) -g
-LDLIBS  := -lm -lrt -lpthread
+LDLIBS  := -lcpp_redis -ltacopie -lm -lrt -lpthread
 EXEC    := convbin
 
 # target-specific options
@@ -74,6 +76,9 @@ $(REL_EXEC): $(addprefix $(REL_DIR)/,$(OBJ_NAMES))
 $(REL_DIR)/%.o: %.c $(SRC_DIR_1)/rtklib.h
 	$(CXX) -c $(CFLAGS) $< -o $@
 
+$(REL_DIR)/%.o: %.cpp
+	$(CXX) -c $(CFLAGS) $< -o $@
+
 #prerelease
 $(PREREL_EXEC): $(addprefix $(PREREL_DIR)/,$(OBJ_NAMES))
 	$(CXX) $^ -o $@ $(LDLIBS)
@@ -81,11 +86,17 @@ $(PREREL_EXEC): $(addprefix $(PREREL_DIR)/,$(OBJ_NAMES))
 $(PREREL_DIR)/%.o: %.c $(SRC_DIR_1)/rtklib.h
 	$(CXX) -c $(CFLAGS) $< -o $@
 
+$(PREREL_DIR)/%.o: %.cpp
+	$(CXX) -c $(CFLAGS) $< -o $@
+
 # debug
 $(DBG_EXEC): $(addprefix $(DBG_DIR)/,$(OBJ_NAMES))
 	$(CXX) $^ -o $@ $(LDLIBS) 
 
 $(DBG_DIR)/%.o: %.c $(SRC_DIR_1)/rtklib.h
+	$(CXX) -c $(CFLAGS) $< -o $@
+
+$(DBG_DIR)/%.o: %.cpp
 	$(CXX) -c $(CFLAGS) $< -o $@
 
 ####################################################################
