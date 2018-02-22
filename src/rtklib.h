@@ -54,9 +54,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #endif
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+#include "rw_queue.hpp"
 
 #ifdef WIN_DLL
 #define EXPORT __declspec(dllexport) /* for Windows DLL */
@@ -551,6 +550,8 @@ extern "C" {
 #endif
 
 /* type definitions ----------------------------------------------------------*/
+
+class RinexEvent;
 
 #ifdef WIN32
 typedef struct {        /* time struct */
@@ -1698,6 +1699,7 @@ EXPORT int outrnxhnavb(FILE *fp, const rnxopt_t *opt, const seph_t *seph);
 EXPORT int rtk_uncompress(const char *file, char *uncfile);
 EXPORT int convrnx(int format, rnxopt_t *opt, const char *file, char **ofile,
                    int *intflg, stream_t *stream);
+void set_event_queue(RWQueue<RinexEvent>& queue);
 EXPORT int  init_rnxctr (rnxctr_t *rnx);
 EXPORT void free_rnxctr (rnxctr_t *rnx);
 EXPORT int  open_rnxctr (rnxctr_t *rnx, FILE *fp);
@@ -2018,7 +2020,4 @@ extern int showmsg(char *format,...);
 extern void settspan(gtime_t ts, gtime_t te);
 extern void settime(gtime_t time);
 
-#ifdef __cplusplus
-}
-#endif
 #endif /* RTKLIB_H */

@@ -40,6 +40,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include "rtklib.h"
+#include "rnx_event.hpp"
+#include "subscriber.hpp"
 
 static const char rcsid[]="$Id: convbin.c,v 1.1 2008/07/17 22:13:04 ttaka Exp $";
 
@@ -49,6 +51,25 @@ static const char rcsid[]="$Id: convbin.c,v 1.1 2008/07/17 22:13:04 ttaka Exp $"
 static int timeout      =0;         /* no timeout */
 static int reconnect    =0;         /* not reconnect interval */
 static int intflg       =0;
+RWQueue<RinexEvent> event_queue;
+
+void event_handler(json &data) {
+    try {
+        RinexEvent event = RinexEvent(data);
+        event_queue.push(event);
+    }
+    catch (std::runtime_error e) {
+        fprintf(stderr, "RinexEvent handler error: %s\n", e.what());
+        return;
+    }
+}
+
+void subscriber_thread(std::string channel_name, std::mutex& mtx) {
+    Subscriber sub;
+    sub.run();
+    sub.subscribe_to_channel(channel_name, &event_handler);
+    sub.block(mtx);
+}
 
 /* external stop signal ------------------------------------------------------*/
 static void sigshut(int sig)
@@ -198,8 +219,8 @@ static int convbin(int format, rnxopt_t *opt, const char *ifile, char **file,
 {
     int i,def;
     char work[1024],ofile_[9][1024]={"","","","","","","","",""},*ofile[9],*p;
-    char *extnav = const_cast<char*>(opt->rnxver<=2.99||opt->navsys==SYS_GPS?"N":"P");
-    char *extlog = const_cast<char*>(format==STRFMT_LEXR?"lex":"sbs");
+    const char *extnav = opt->rnxver<=2.99||opt->navsys==SYS_GPS?"N":"P";
+    const char *extlog = format==STRFMT_LEXR?"lex":"sbs";
     
     def=!file[0]&&!file[1]&&!file[2]&&!file[3]&&!file[4]&&!file[5]&&!file[6]&&!file[7]&&!file[8];
     
@@ -603,7 +624,20 @@ int main(int argc, char **argv)
     signal(SIGTERM, sigshut); /* external shutdown signal */
     signal(SIGUSR2, sigshut);
 
-    stat=convbin(format,&opt,ifile,ofile,dir,&intflg,&stream);
+#undef lock(f)
+#undef unlock(f)
+    {
+        std::mutex mtx;
+        mtx.lock();
+        set_event_queue(event_queue);
+        std::thread event_thread(&subscriber_thread, static_cast<std::string>("RCH_EVENT"),
+                                std::ref(mtx));
+        stat=convbin(format,&opt,ifile,ofile,dir,&intflg,&stream);
+        mtx.unlock();
+        event_thread.join();
+    }
+#define lock(f)     pthread_mutex_lock(f)
+#define unlock(f)   pthread_mutex_unlock(f)
 
     strclose(&stream);
     traceclose();

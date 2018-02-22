@@ -31,6 +31,7 @@
 *                           support separted navigation files for ver.3
 *-----------------------------------------------------------------------------*/
 #include "rtklib.h"
+#include "rnx_event.hpp"
 
 static const char rcsid[]="$Id:$";
 
@@ -64,7 +65,13 @@ static const int navsys[]={     /* system codes */
     SYS_GPS,SYS_GLO,SYS_GAL,SYS_QZS,SYS_SBS,SYS_CMP,SYS_IRN,0,0
 };
 
+static RWQueue<RinexEvent>* event_queue;
+
 static gtime_t time_last_msg = {static_cast<time_t>(0.0)};  /* last time of message for interval conversion */
+
+void set_event_queue(RWQueue<RinexEvent>& queue) {
+    event_queue = &queue;
+}
 /* convert rinex obs type ver.3 -> ver.2 -------------------------------------*/
 static void convcode(double ver, int sys, char *type)
 {
@@ -881,6 +888,36 @@ static void outrnxevent(FILE *fp, rnxopt_t *opt, int staid, stas_t *stas)
     fprintf(fp,"%14.4f%14.4f%14.4f%-18s%-20s\n",del[0],del[1],del[2],"",
             "ANTENNA: DELTA H/E/N");
 }
+static void write_point_stakeout_event(FILE * fd, double rnx_version, RinexEvent &event) {
+    double ep[6];
+    const RinexEvent::Marker &marker = event.get_marker();
+    int num_strings = event.get_num_strings();
+    int phase = event.get_phase();
+    int year;
+    const char *format;
+    time2epoch(marker.gps_time, ep);
+
+    if (rnx_version < RNX3VER) {
+        format = " %02d %2.0f %2.0f %2.0f %2.0f%11.7f  %d%3d\n";\
+        year = (int)ep[0]%100;
+    }
+    else {
+        format = "> %04d %2.0f %2.0f %2.0f %2.0f%11.7f  %d%3d\n";
+        year = (int)ep[0];
+    }
+
+    fprintf(fd, format, year, ep[1], ep[2], ep[3], ep[4], ep[5], phase, num_strings);
+
+    if (event.is_kinematic()) {
+        fprintf(fd, "%-60s%-20s\n", "*** FROM NOW ON KINEMATIC DATA! ***", "COMMENT");
+        fprintf(fd, "%-60s%-20s\n", "", "COMMENT");
+    }
+    if (event.is_static()) {
+        fprintf(fd, "%-60s%-20s\n", "*** END OF KINEMATIC DATA! ***", "COMMENT");
+        fprintf(fd, "%-60s%-20s\n", marker.name.c_str(), "MARKER NAME");
+        fprintf(fd, "%-60s%-20s\n", marker.number.c_str(), "MARKER NUMBER");
+    }
+}
 /* gtime to seconds ----------------------------------------------------------*/
 static double gtime2sec(gtime_t time)
 {
@@ -926,7 +963,7 @@ static void convobs(FILE **ofp, rnxopt_t *opt, strfile_t *str, int *staid,
                     stas_t *stas, int *n, unsigned char slips[][NFREQ+NEXOBS])
 {
     gtime_t time;
-    
+    static gtime_t prev_time = {static_cast<time_t>(0.0), 0.0};
     trace(3,"convobs :\n");
     
     if (!ofp[0]||str->obs->n<=0) return;
@@ -953,6 +990,21 @@ static void convobs(FILE **ofp, rnxopt_t *opt, strfile_t *str, int *staid,
         }
         *staid=str->rtcm.staid;
     }
+
+    /* output rnx event in right time */
+    if (!event_queue->isempty()) {
+        RinexEvent event = event_queue->front();
+        double event_time_sec = gtime2sec(event.get_time());
+
+        if (event_time_sec <= gtime2sec(time)) {
+            event_queue->pop();
+            if (event_time_sec <= gtime2sec(prev_time)) {
+                event.set_time(time);
+            }
+            write_point_stakeout_event(ofp[0], opt->rnxver, event);
+        }
+    }
+
     /* output rinex obs */
 	outrnxobsb(ofp[0],opt,str->obs->data,str->obs->n,str->obs->flag);
     /* n[10] - count of events converted to rinex */
@@ -964,6 +1016,7 @@ static void convobs(FILE **ofp, rnxopt_t *opt, strfile_t *str, int *staid,
     opt->tend=time;
     
     n[0]++;
+    prev_time = time;
 }
 /* convert nav message -------------------------------------------------------*/
 static void convnav(FILE **ofp, rnxopt_t *opt, strfile_t *str, int *n)
