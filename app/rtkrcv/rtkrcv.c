@@ -83,7 +83,9 @@ typedef struct {                       /* console type */
 /* function prototypes -------------------------------------------------------*/
 extern FILE *popen(const char *, const char *);
 extern int pclose(FILE *);
-
+extern int showmsg(char *format,...) {}
+extern void settspan(gtime_t ts, gtime_t te) {}
+extern void settime(gtime_t time) {}
 /* global variables ----------------------------------------------------------*/
 static rtksvr_t svr;                    /* rtk server struct */
 static stream_t moni;                   /* monitor stream */

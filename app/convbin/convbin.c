@@ -78,6 +78,8 @@ static void sigshut(int sig)
     intflg = 1;
 }
 
+extern void settspan(gtime_t ts, gtime_t te) {}
+extern void settime(gtime_t time) {}
 /* help text -----------------------------------------------------------------*/
 static const char *help[]={
 "",

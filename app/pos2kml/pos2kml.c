@@ -43,6 +43,9 @@ static const char *help[]={
 " -f n e h  add north/east/height offset to position (m) [0 0 0]",
 " -gpx      output GPX file"
 };
+extern int showmsg(char *format,...) {}
+extern void settspan(gtime_t ts, gtime_t te) {}
+extern void settime(gtime_t time) {}
 /* print help ----------------------------------------------------------------*/
 static void printhelp(void)
 {
