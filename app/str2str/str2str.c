@@ -120,6 +120,9 @@ static const char *help[]={
 " -h                print help",
 " -m --mask         snr mask (0.25 dBHz)",
 };
+extern int showmsg(char *format,...) {}
+extern void settspan(gtime_t ts, gtime_t te) {}
+extern void settime(gtime_t time) {}
 /* print help ----------------------------------------------------------------*/
 static void printhelp(void)
 {
@@ -229,7 +232,7 @@ int main(int argc, char **argv)
     char *local="",*proxy="",*msg="1004,1019",*opt="",buff[256],*p;
     char strmsg[MAXSTRMSG]="",*antinfo="",*rcvinfo="";
     char *ant[]={"","",""},*rcv[]={"","",""},*logfile="";
-    int i,j,n=0,dispint=5000,trlevel=0,opts[]={10000,10000,2000,32768,10,0,30,0,0.0};
+    int i,j,n=0,dispint=5000,trlevel=0,opts[]={10000,10000,2000,32768,10,0,30,0,0};
     int types[MAXSTR]={STR_FILE,STR_FILE},stat[MAXSTR]={0},byte[MAXSTR]={0};
     int bps[MAXSTR]={0},fmts[MAXSTR]={0},sta=0;
     
