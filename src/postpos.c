@@ -40,7 +40,8 @@
 *           2016/10/10  1.22 fix bug on identification of file fopt->blq
 *-----------------------------------------------------------------------------*/
 #include "rtklib.h"
-
+#include <cmath>
+#include <algorithm>
 static const char rcsid[]="$Id: postpos.c,v 1.1 2008/07/17 21:48:06 ttaka Exp $";
 
 #define MIN(x,y)    ((x)<(y)?(x):(y))
@@ -406,6 +407,13 @@ static void corr_phase_bias_ssr(obsd_t *obs, int n, const nav_t *nav)
         obs[i].L[j]-=nav->ssr[obs[i].sat-1].pbias[code-1]/lam;
     }
 }
+static bool ishold(rtk_t *rtk) {
+    for (int i = 0; i < MAXSAT; i++) {
+        if (rtk->ssat[i].fix[0] == 3)
+            return true;
+    }
+    return false;
+}
 /* process positioning -------------------------------------------------------*/
 static void procpos(FILE *fp, FILE *fptm, const prcopt_t *popt, const solopt_t *sopt,
                     rtk_t *rtk, int mode)
@@ -426,7 +434,7 @@ static void procpos(FILE *fp, FILE *fptm, const prcopt_t *popt, const solopt_t *
         rtkinit(rtk,popt);
     
     rtcm_path[0]='\0';
-    
+    //read_pos_file();
     while ((nobs=inputobs(obs,rtk->sol.stat,popt))>=0) {
         
         /* exclude satellites */
@@ -449,6 +457,18 @@ static void procpos(FILE *fp, FILE *fptm, const prcopt_t *popt, const solopt_t *
             for (i=0;i<n;i++) obs[i].L[1]=obs[i].P[1]=0.0;
         }
 #endif
+        int n_rover = 0;
+        while ( (n_rover < n) && (obs[n_rover].rcv == 1) ) {  /* rover observations (rcv == 1) */
+            n_rover++;
+        }
+        static int counter = 0;
+        auto n_prev = n;
+        // if (rtk->extr_data.sol_queue.size() != 0)
+        //     n = restore_missed_sats(rtk, obs, n_rover, &navs, n);
+        
+
+        if (n - n_prev > 0)
+            printf("\r\ndiff: %d\r\n", n - n_prev);
         if (!rtkpos(rtk,obs,n,&navs)) {
             if (rtk->sol.eventime.time != 0) {
                 if (mode == 0) {
@@ -459,7 +479,48 @@ static void procpos(FILE *fp, FILE *fptm, const prcopt_t *popt, const solopt_t *
             }
             continue;
         }
-        
+        // if (rtk->extr_data.sol_queue.size() != 0) 
+        //    { 
+        //     if (rtk->sol.stat == SOLQ_FIX) {
+        //         counter++;
+        //         post_update_obs(rtk, &navs, obs, n_rover, rtk->sol.rr);
+                
+        //     }
+        //     std::queue<std::vector<double>> empty{};
+        //     std::swap(rtk->extr_data.sol_queue, empty);
+        //     printf("EXTR POS %f %f %f \n", rtk->extr_data.extr_pos[0], rtk->extr_data.extr_pos[1], rtk->extr_data.extr_pos[2]);
+
+        //     printf("REAL POS: %f %f %f\n", rtk->sol.rr[0], rtk->sol.rr[1], rtk->sol.rr[2]);
+        //     auto sum = 0.0;
+        //     auto max_diff = 0.0;
+        //     for (int ui=0;ui<3;ui++)
+        //     {
+        //         auto diff = rtk->extr_data.extr_pos[ui] - rtk->sol.rr[ui];
+        //         //printf("diff %13.12f", diff);
+        //         max_diff = std::max(abs(diff), max_diff); 
+        //         sum += pow(diff,2);
+        //     }
+        //     printf("DELTA POS: %14.12f  \n", sqrt(sum));
+        //     printf("MAXDIFF POS: %14.12f  \n", max_diff);
+
+        //    }
+        // if (rtk->sol.stat == SOLQ_FIX){
+        //     if (rtk->extr_data.sol_queue.size() == 1) {
+        //         rtk->extr_data.sol_queue.pop();
+        //     }
+        //     rtk->extr_data.sol_queue.push(std::vector<double>{rtk->sol.rr[0],
+        //                                                       rtk->sol.rr[1], 
+        //                                                       rtk->sol.rr[2]});
+        //     save_ranges(rtk, obs, n_rover, &navs, rtk->sol.rr);
+
+        // }
+       
+        // auto extr_pos = rtk->extr_data.extr_pos;
+        // auto sol_copy = rtk->sol;
+        // if (norm(extr_pos, 3) > 0.0) {
+        //     for (int i = 0; i < 3; i++)
+        //         sol_copy.rr[i] = extr_pos[i];
+        // }
         if (mode==0) { /* forward/backward */
             if (!solstatic) {
                 outsol(fp,&rtk->sol,rtk->rb,sopt);

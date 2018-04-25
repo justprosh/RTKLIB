@@ -19,7 +19,7 @@
 *-----------------------------------------------------------------------------*/
 #include <stdarg.h>
 #include "rtklib.h"
-
+#include <libgen.h>
 static const char rcsid[]="$Id: rnx2rtkp.c,v 1.1 2008/07/17 21:55:16 ttaka Exp $";
 
 #define PROGNAME    "rnx2rtkp"          /* program name */
@@ -186,6 +186,14 @@ int main(int argc, char **argv)
         showmsg("error : no input file");
         return -2;
     }
+    char filename[500];
+    strcpy(filename, infile[0]);
+    auto path = dirname(filename);
+    char tmp[500];
+    strcat(tmp, path);
+    strcat(tmp, "/reference_solution.pos");
+    read_pos_file(tmp);
+
     ret=postpos(ts,te,tint,0.0,&prcopt,&solopt,&filopt,infile,n,outfile,"","");
     
     if (!ret) fprintf(stderr,"%40s\r","");

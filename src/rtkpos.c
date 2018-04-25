@@ -2144,6 +2144,7 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
             rtk->sol.rr[i]=rtk->xa[i];
             rtk->sol.qr[i]=(float)rtk->Pa[i+i*rtk->na];
         }
+
         if (rtk->opt.dynamics) {
             for (i = 3; i < 6; i++) {
                 rtk->sol.rr[i] = rtk->xa[i];
@@ -2154,6 +2155,7 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
         rtk->sol.qr[5]=(float)rtk->Pa[2];
     }
     else {  /* float solution */
+    
         for (i=0;i<3;i++) {
             rtk->sol.rr[i]=rtk->x[i];
             rtk->sol.qr[i]=(float)rtk->P[i+i*rtk->nx];
@@ -2167,6 +2169,7 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
         rtk->sol.qr[4]=(float)rtk->P[1+2*rtk->nx];
         rtk->sol.qr[5]=(float)rtk->P[2];
         rtk->nfix=0;
+    
     }
     for (i=0;i<n;i++) for (j=0;j<nf;j++) {
         if (obs[i].L[j]==0.0) continue;
@@ -2300,6 +2303,8 @@ static int rtk_estimate_standard(rtk_t *rtk, const obsd_t *obsd, int n_obsd, con
     
     assert( n_rover + n_base == n_obsd );
     
+    //restore_missed_sats(rtk, const_cast<obsd_t*>(obsd), n_rover, nav);
+
     return relpos(rtk, obsd, n_rover, n_base, nav);
 }
 

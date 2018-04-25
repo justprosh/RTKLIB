@@ -55,6 +55,11 @@
 #include <unistd.h>
 #endif
 
+#include <set>
+#include <queue>
+#include <vector>
+#include <unordered_map>
+#include <memory>
 #include "rw_queue.hpp"
 
 #ifdef WIN_DLL
@@ -1292,6 +1297,23 @@ typedef struct {        /* ambiguity control type */
     char flags[MAXSAT]; /* fix flags */
 } ambc_t;
 
+typedef struct {
+    std::queue<std::vector<double>> sol_queue = {};
+    std::unordered_map<int, obsd_t> sat2prev_obs= {};
+    std::unordered_map<int, obsd_t> sat2cur_obs= {};
+
+    std::unordered_map<int, obsd_t> sat2prev_obs_dirty= {};
+    std::unordered_map<int, std::vector<double>> satpos_prev = {};
+    double *extr_pos = NULL;
+    double *prev_pos = NULL;
+    std::unordered_map<int, double> sat2range_prev = {};
+    std::unordered_map<int, double> sat2range_cur = {};
+
+    double *rs;
+    bool flag;
+    std::set<int> sats = {};
+} extrpol_t;
+
 typedef struct {        /* RTK control/result type */
     sol_t  sol;         /* RTK solution */
     double rb[6];       /* base position/velocity (ecef) (m|m/s) */
@@ -1310,6 +1332,7 @@ typedef struct {        /* RTK control/result type */
     prcopt_t opt;       /* processing options */
     int initial_mode;   /* initial positioning mode */
     smoothing_data_t smoothing_data; /* data related to smoothing of code */
+    extrpol_t extr_data;
 } rtk_t;
 
 typedef struct half_cyc_tag {  /* half-cycle correction list type */
@@ -2019,5 +2042,10 @@ EXPORT int lexioncorr(gtime_t time, const nav_t *nav, const double *pos,
 extern int showmsg(char *format,...);
 extern void settspan(gtime_t ts, gtime_t te);
 extern void settime(gtime_t time);
+
+int restore_missed_sats(rtk_t *rtk, obsd_t *obs, int n_rover, const nav_t *nav, int n_all);
+void post_update_obs(rtk_t *rtk, const nav_t *nav, obsd_t *obs_cur, int n_obs_cur, double *cur_pos);
+void read_pos_file(char*);
+void save_ranges(rtk_t *rtk, obsd_t *obs, int n_obs, const nav_t *nav, double *pos);
 
 #endif /* RTKLIB_H */

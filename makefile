@@ -33,6 +33,7 @@ CFLAGS_CMN = -std=c++11 -pedantic -Wall -fpic -fno-strict-overflow -Wno-error=un
 LDLIBS	   = lib/iers/gcc/iers.a -lm -lrt -lpthread -lcpp_redis -ltacopie
 LDFLAGS    = -shared
 TARGET_LIB = librtk.so
+SAN_FLAGS  = 
 
 # target-specific options
 REL_OPTS    = -O3 -DNDEBUG
@@ -94,6 +95,7 @@ prerelease: $(LIB) | $(APPS)
 debug: deps
 debug: IERS
 debug: CFLAGS  = $(CFLAGS_CMN) $(DBG_OPTS)
+debug: SAN_FLAGS = -fno-omit-frame-pointer -fsanitize=address
 debug: mkdir
 debug: |$(LIB) $(APPS)
 
@@ -102,7 +104,7 @@ IERS:
 	@$(MAKE) -C $(IERS_DIR)/gcc
 # release lib
 $(LIB):  $(OBJS)
-	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+	$(CXX) $(LDFLAGS) $(SAN_FLAGS) $^ -o $@ $(LDLIBS)
 
 $(BUILD_DIR)/src/%.o: %.c  $(DEPDIR)/%.d
 	$(CXX) $(DEPFLAGS) -c $(CFLAGS) -fpic $< -o $@
@@ -117,23 +119,23 @@ $(DEPDIR)/%.d: ;
 
 # apps
 rtkrcv: $(addprefix $(BUILD_DIR)/app/, $(SRC_NAMES_RTKRCV:%.c=%.o)) | $(LIB)
-	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS)  -L$(abspath $(BUILD_DIR)) -lrtk \
+	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) $(SAN_FLAGS) -L$(abspath $(BUILD_DIR)) -lrtk \
 	-Wl,-rpath=$(abspath $(BUILD_DIR))
 
 rnx2rtkp: $(addprefix $(BUILD_DIR)/app/, $(SRC_NAMES_RNX2RTKP:%.c=%.o)) | $(LIB)
-	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) -L$(abspath $(BUILD_DIR)) -lrtk \
+	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) $(SAN_FLAGS) -L$(abspath $(BUILD_DIR)) -lrtk \
 	-Wl,-rpath=$(abspath $(BUILD_DIR))
 
 pos2kml: $(addprefix $(BUILD_DIR)/app/, $(SRC_NAMES_POS2KML:%.c=%.o))  | $(LIB)
-	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) -L$(abspath $(BUILD_DIR)) -lrtk \
+	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) $(SAN_FLAGS) -L$(abspath $(BUILD_DIR)) -lrtk \
 	-Wl,-rpath=$(abspath $(BUILD_DIR))
 
 convbin: $(addprefix $(BUILD_DIR)/app/, $(SRC_NAMES_CONVBIN:%.c=%.o)) | $(LIB)
-	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) -L$(abspath $(BUILD_DIR)) -lrtk \
+	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) $(SAN_FLAGS) -L$(abspath $(BUILD_DIR)) -lrtk \
 	-Wl,-rpath=$(abspath $(BUILD_DIR))
 
 str2str: $(addprefix $(BUILD_DIR)/app/, $(SRC_NAMES_STR2STR:%.c=%.o)) | $(LIB)
-	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) -L$(abspath $(BUILD_DIR)) -lrtk \
+	$(CXX) $^ -o $(BUILD_DIR)/$@ $(LDLIBS) $(SAN_FLAGS) -L$(abspath $(BUILD_DIR)) -lrtk \
 	-Wl,-rpath=$(abspath $(BUILD_DIR))
 
 $(BUILD_DIR)/app/%.o: %.c $(DEPDIR)/%.d
